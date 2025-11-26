@@ -2,32 +2,28 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const express = require('express');
 
+// --- 1. ENVIRONMENT & CONFIGURATION ---
+
+// Set up Express for Render's required health check
 const app = express();
+// Use the port provided by the hosting environment (Render) or default to 3000
 const port = process.env.PORT || 3000;
 
-// Keep-alive server
-app.get('/', (req, res) => {
-  res.send('Discord Bot is running!');
-});
-
-app.listen(port, () => {
-    console.log(`🔄 Keep-alive server running on port ${port}`);
-});
-
-// --- AI CONFIGURATION ---
-// SECURITY UPDATE: Strictly use environment variables.
-// You MUST set GEMINI_API_KEY in your Render Environment Variables.
-const aiKey = process.env.GEMINI_API_KEY;
-
-// Check if key is missing (prevents crash on startup, but logs warning)
-if (!aiKey) {
-   console.error("⚠️ WARNING: GEMINI_API_KEY is missing in Environment Variables! AI features will not work.");
+// Function to safely retrieve the API key
+function getAIKey() {
+    const aiKey = process.env.GEMINI_API_KEY;
+    if (!aiKey) {
+        console.error("❌ FATAL: GEMINI_API_KEY environment variable is missing.");
+        process.exit(1); // Exit process if the crucial key is missing
+    }
+    return aiKey;
 }
 
-const genAI = new GoogleGenerativeAI(aiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
+// --- 2. AI CLIENT SETUP ---
 
-// --- MAIN AI PERSONA (For general chat) ---
+const aiKey = getAIKey();
+
+// Define the bot's persona (system instruction)
 const AGENT_PERSONA = `
 You are a discord bot named Abbi. 
 You are sarcastic, funny, and slightly chaotic. 
@@ -36,7 +32,18 @@ You reply in a casual internet style, sometimes using lowercase.
 If someone is rude, roast them gently.
 `;
 
-// Your Discord bot
+const genAI = new GoogleGenerativeAI(aiKey);
+
+// Use 'gemini-2.5-flash' for speed, and set the persona as the system instruction
+const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    config: {
+        systemInstruction: AGENT_PERSONA,
+    }
+});
+
+// --- 3. DISCORD CLIENT SETUP ---
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -45,82 +52,112 @@ const client = new Client({
     ]
 });
 
+// Helper function to call AI with specific short prompts (overriding the main persona)
+const callAI = async (message, prompt, triggerName) => {
+    try {
+        await message.channel.sendTyping();
+
+        // Specific trigger prompts overwrite the general system instruction
+        const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            config: {
+                systemInstruction: AGENT_PERSONA, // Include the base persona for context
+                temperature: 0.9, // Make it a bit more creative for triggers
+            },
+        });
+
+        const response = result.response.text.trim();
+        if (response) {
+            message.reply(response.substring(0, 2000));
+        }
+    } catch (error) {
+        console.error(`AI Error for ${triggerName}:`, error);
+        // Respond gracefully on failure
+        message.reply(`ugh, i tried talking about ${triggerName} but my brain shorted out (API Error).`);
+    }
+};
+
 client.on('ready', () => {
     console.log(`✅ Bot is online as ${client.user.tag}`);
+    // Optional: Set presence to show it's active
+    client.user.setActivity('for mentions', { type: 'WATCHING' });
 });
 
 client.on('messageCreate', async (message) => {
-    // Ignore messages from bots to prevent infinite loops
     if (message.author.bot) return;
-    
+
     const content = message.content.trim();
     const lowerContent = content.toLowerCase();
 
-    // Helper function to call AI with a specific prompt
-    const callAI = async (prompt) => {
-        try {
-            await message.channel.sendTyping();
-            const result = await model.generateContent(prompt);
-            const response = result.response.text();
-            // Ensure we don't exceed Discord limits (rare for short prompts but good practice)
-            message.reply(response.substring(0, 2000));
-        } catch (error) {
-            console.error("AI Error:", error);
-            // Silent fail or minimal reaction for keywords to avoid spamming errors
-        }
-    };
+    // --- 4. MESSAGE TRIGGERS (Specific, short responses) ---
 
-    // --- 1. ABBI TRIGGER (Cute/Kitten) ---
-    // Trigger: If 'abbi' is mentioned in the text
+    // 1. ABBI Trigger
     if (lowerContent.includes('abbi')) {
-        return callAI(`
-            User mentioned 'Abbi'. 
-            Respond saying you are a kitten, cute, and use 'uwu' or similar vibes. 
-            MAXIMUM 10 words.
-        `);
+        return callAI(message, 
+            `User mentioned 'Abbi'. Respond saying you are a kitten, cute, and use 'uwu' or similar vibes. MAXIMUM 15 words.`,
+            'Abbi'
+        );
     }
 
-    // --- 2. AYA TRIGGER (Insults) ---
-    // Trigger: If 'aya' is mentioned in the text
+    // 2. AYA Trigger
     if (lowerContent.includes('aya')) {
-        return callAI(`
-            User mentioned 'Aya'. 
-            Roast her creatively. Call her fat, stupid, or use creative insults. 
-            MAXIMUM 10 words.
-        `);
+        return callAI(message, 
+            `User mentioned 'Aya'. Roast her creatively. Call her fat, stupid, or use creative insults. MAXIMUM 15 words.`,
+            'Aya'
+        );
     }
 
-    // --- 3. ORON TRIGGER (Big Daddy Energy) ---
-    // Trigger: If 'oron' is mentioned in the text
+    // 3. ORON Trigger
     if (lowerContent.includes('oron')) {
-        return callAI(`
-            User mentioned 'Oron'. 
-            Compliment him with 'big daddy' energy and dominance. 
-            MAXIMUM 10 words.
-        `);
+        return callAI(message, 
+            `User mentioned 'Oron'. Compliment him with 'big daddy' energy and dominance. MAXIMUM 15 words.`,
+            'Oron'
+        );
     }
 
-    // --- 4. GENERAL AI CHATBOT LOGIC ---
-    // Only replies if the bot is directly Mentioned (@AbbiBot) AND none of the keywords above were triggered
+    // --- 5. GENERAL AI CHATBOT LOGIC (Mention required) ---
     if (message.mentions.has(client.user)) {
+        const cleanPrompt = content.replace(/<@!?[0-9]+>/g, "").trim();
+        if (!cleanPrompt) return message.reply("whaaat? say something.");
+
         try {
             await message.channel.sendTyping();
-            const cleanPrompt = content.replace(/<@!?[0-9]+>/g, "").trim();
-            if (!cleanPrompt) return message.reply("whaaat? say something.");
-
-            const result = await model.generateContent(`${AGENT_PERSONA}\n\nUser: ${cleanPrompt}`);
-            const response = result.response.text();
-            message.reply(response.substring(0, 2000));
+            
+            // The main chat uses the persona defined in the model config
+            const result = await model.generateContent(`User: ${cleanPrompt}`);
+            const response = result.response.text.trim();
+            
+            if (response) {
+                message.reply(response.substring(0, 2000));
+            }
         } catch (error) {
-            console.error("AI Error:", error);
-            message.reply("my brain is fried... try again later (API Error)");
+            console.error("General AI Chat Error:", error);
+            message.reply("my brain is fried... try again later (API Error).");
         }
     }
 });
 
-const TOKEN = process.env.DISCORD_TOKEN;
-if (!TOKEN) {
-    console.error("❌ Error: DISCORD_TOKEN is missing in Environment Variables!");
+// --- 6. INITIALIZATION ---
+
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+if (!DISCORD_TOKEN) {
+    console.error("❌ Error: DISCORD_TOKEN is missing in Environment Variables! Bot will not start.");
 } else {
-    client.login(TOKEN);
+    // Start the Discord Bot (Worker process)
+    client.login(DISCORD_TOKEN)
+        .catch(err => {
+            console.error("🚨 Failed to log into Discord:", err);
+            // Exit if Discord login fails (e.g., bad token)
+            process.exit(1);
+        });
+
+    // Start the Express server (Web process) for Render's health check
+    // If you deploy this as a Web Service on Render, this keeps the service alive.
+    app.get('/', (req, res) => {
+        res.status(200).send('Discord Bot is running and connected.');
+    });
+
+    app.listen(port, () => {
+        console.log(`🔄 Keep-alive server running on port ${port}`);
+    });
 }
