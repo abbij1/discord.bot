@@ -64,12 +64,20 @@ const callAI = async (message, prompt, triggerName) => {
             },
         });
 
-        const response = result.response.text.trim();
-        if (response) {
+        // FIX 4 (Safety Check): Ensure text exists before calling .trim()
+        const responseText = result.response?.text;
+
+        if (responseText) {
+            const response = responseText.trim();
             // Discord message limit is 2000 characters
             message.reply(response.substring(0, 2000));
+        } else {
+             // Handle case where text is undefined (e.g., prompt was blocked/filtered)
+            console.error(`AI Error for ${triggerName}: Gemini returned no text content.`);
+            message.reply(`ugh, i tried talking about ${triggerName} but the AI was speechless (probably filtered).`);
         }
     } catch (error) {
+        // This catches API connection issues or other network failures
         console.error(`AI Error for ${triggerName}:`, error);
         // Respond gracefully on failure
         message.reply(`ugh, i tried talking about ${triggerName} but my brain shorted out (API Error).`);
@@ -134,12 +142,19 @@ client.on('messageCreate', async (message) => {
             await message.channel.sendTyping();
             
             // The main chat uses the persona defined in the model config (AGENT_PERSONA)
-            const result = await model.generateContent(`User: ${cleanPrompt}`);
-            const response = result.response.text.trim();
+            const geminiResult = await model.generateContent(`User: ${cleanPrompt}`);
             
-            if (response) {
+            // Apply the same safety check here
+            const responseText = geminiResult.response?.text;
+            
+            if (responseText) {
+                const response = responseText.trim();
                 message.reply(response.substring(0, 2000));
+            } else {
+                 console.error("General AI Chat Error: Gemini returned no text content.");
+                 message.reply("my brain is fried... try again later (AI was speechless).");
             }
+
         } catch (error) {
             console.error("General AI Chat Error:", error);
             message.reply("my brain is fried... try again later (API Error).");
