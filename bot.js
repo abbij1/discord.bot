@@ -9,6 +9,7 @@ const app = express();
 // Use the port provided by the hosting environment (Render) or default to 3000
 const port = process.env.PORT || 3000;
 
+<<<<<<< HEAD
 // Function to safely retrieve the API key
 function getAIKey() {
     const aiKey = process.env.GEMINI_API_KEY;
@@ -24,6 +25,31 @@ function getAIKey() {
 const aiKey = getAIKey();
 
 // Define the bot's persona (system instruction)
+=======
+// Keep-alive server
+app.get('/', (req, res) => {
+  res.send('Discord Bot is running!');
+});
+
+app.listen(port, () => {
+    console.log(`🔄 Keep-alive server running on port ${port}`);
+});
+
+// --- AI CONFIGURATION ---
+const aiKey = process.env.GEMINI_API_KEY;
+
+if (!aiKey) {
+   console.error("⚠️ WARNING: GEMINI_API_KEY is missing in Environment Variables! AI features will not work.");
+}
+
+const genAI = new GoogleGenerativeAI(aiKey);
+
+// FIX: Switched to 'gemini-pro' as it is the most stable model identifier 
+// when specific versions like 'flash-001' return 404 errors.
+const model = genAI.getGenerativeModel({ model: "gemini-pro" }); 
+
+// --- MAIN AI PERSONA ---
+>>>>>>> 3083471ccbcefa2e99f17dccb4d7e940cf708a8d
 const AGENT_PERSONA = `
 You are a discord bot named Abbi. 
 You are sarcastic, funny, and slightly chaotic. 
@@ -89,9 +115,26 @@ client.on('messageCreate', async (message) => {
     const content = message.content.trim();
     const lowerContent = content.toLowerCase();
 
+<<<<<<< HEAD
     // --- 4. MESSAGE TRIGGERS (Specific, short responses) ---
 
     // 1. ABBI Trigger
+=======
+    // Helper function to call AI
+    const callAI = async (prompt) => {
+        try {
+            await message.channel.sendTyping();
+            const result = await model.generateContent(prompt);
+            const response = result.response.text();
+            message.reply(response.substring(0, 2000));
+        } catch (error) {
+            console.error("AI Error:", error);
+            // If the specific model fails, we log it but don't crash the bot
+        }
+    };
+
+    // --- 1. ABBI TRIGGER ---
+>>>>>>> 3083471ccbcefa2e99f17dccb4d7e940cf708a8d
     if (lowerContent.includes('abbi')) {
         return callAI(message, 
             `User mentioned 'Abbi'. Respond saying you are a kitten, cute, and use 'uwu' or similar vibes. MAXIMUM 15 words.`,
@@ -99,7 +142,11 @@ client.on('messageCreate', async (message) => {
         );
     }
 
+<<<<<<< HEAD
     // 2. AYA Trigger
+=======
+    // --- 2. AYA TRIGGER ---
+>>>>>>> 3083471ccbcefa2e99f17dccb4d7e940cf708a8d
     if (lowerContent.includes('aya')) {
         return callAI(message, 
             `User mentioned 'Aya'. Roast her creatively. Call her fat, stupid, or use creative insults. MAXIMUM 15 words.`,
@@ -107,7 +154,11 @@ client.on('messageCreate', async (message) => {
         );
     }
 
+<<<<<<< HEAD
     // 3. ORON Trigger
+=======
+    // --- 3. ORON TRIGGER ---
+>>>>>>> 3083471ccbcefa2e99f17dccb4d7e940cf708a8d
     if (lowerContent.includes('oron')) {
         return callAI(message, 
             `User mentioned 'Oron'. Compliment him with 'big daddy' energy and dominance. MAXIMUM 15 words.`,
@@ -115,7 +166,11 @@ client.on('messageCreate', async (message) => {
         );
     }
 
+<<<<<<< HEAD
     // --- 5. GENERAL AI CHATBOT LOGIC (Mention required) ---
+=======
+    // --- 4. GENERAL AI CHATBOT LOGIC ---
+>>>>>>> 3083471ccbcefa2e99f17dccb4d7e940cf708a8d
     if (message.mentions.has(client.user)) {
         const cleanPrompt = content.replace(/<@!?[0-9]+>/g, "").trim();
         if (!cleanPrompt) return message.reply("whaaat? say something.");
@@ -143,6 +198,7 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 if (!DISCORD_TOKEN) {
     console.error("❌ Error: DISCORD_TOKEN is missing in Environment Variables! Bot will not start.");
 } else {
+<<<<<<< HEAD
     // Start the Discord Bot (Worker process)
     client.login(DISCORD_TOKEN)
         .catch(err => {
@@ -161,3 +217,7 @@ if (!DISCORD_TOKEN) {
         console.log(`🔄 Keep-alive server running on port ${port}`);
     });
 }
+=======
+    client.login(TOKEN);
+}
+>>>>>>> 3083471ccbcefa2e99f17dccb4d7e940cf708a8d
