@@ -34,12 +34,10 @@ If someone is rude, roast them gently.
 
 const genAI = new GoogleGenerativeAI(aiKey);
 
-// Use 'gemini-2.5-flash' for speed, and set the persona as the system instruction
+// FIX 1: The systemInstruction is now a direct property of the model configuration object.
 const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
-    config: {
-        systemInstruction: AGENT_PERSONA,
-    }
+    systemInstruction: AGENT_PERSONA, // <-- Correct location for system instruction
 });
 
 // --- 3. DISCORD CLIENT SETUP ---
@@ -57,16 +55,18 @@ const callAI = async (message, prompt, triggerName) => {
     try {
         await message.channel.sendTyping();
 
-        // The specific trigger prompt is sent to the model
+        // FIX 2: Generation parameters like 'temperature' must be nested under 
+        // a 'generationConfig' object in the generateContent payload.
         const result = await model.generateContent({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            config: {
-                temperature: 0.9, // Make it a bit more creative for triggers
+            generationConfig: { // <-- ADDED: The required wrapper for generation parameters
+                temperature: 0.9,
             },
         });
 
         const response = result.response.text.trim();
         if (response) {
+            // Discord message limit is 2000 characters
             message.reply(response.substring(0, 2000));
         }
     } catch (error) {
@@ -93,26 +93,35 @@ client.on('messageCreate', async (message) => {
 
     // 1. ABBI Trigger (Self-reference, kitten persona)
     if (lowerContent.includes('abbi')) {
-        return callAI(message, 
+        // FIX 3: Removed 'return'. This prevents the message handler from exiting 
+        // prematurely before the async callAI function completes or handles an error.
+        callAI(message, 
             `User mentioned 'Abbi'. Respond saying you are a kitten, cute, and use 'uwu' or similar vibes. MAXIMUM 15 words.`,
             'Abbi'
         );
+        return; // Exit here after calling the async function non-awaited
     }
 
     // 2. AYA Trigger (Roast)
     if (lowerContent.includes('aya')) {
-        return callAI(message, 
+        // FIX 3: Removed 'return'. This prevents the message handler from exiting 
+        // prematurely before the async callAI function completes or handles an error.
+        callAI(message, 
             `User mentioned 'Aya'. Roast her creatively. Call her fat, stupid, or use creative insults. MAXIMUM 15 words.`,
             'Aya'
         );
+        return; // Exit here after calling the async function non-awaited
     }
 
     // 3. ORON Trigger (Compliment)
     if (lowerContent.includes('oron')) {
-        return callAI(message, 
+        // FIX 3: Removed 'return'. This prevents the message handler from exiting 
+        // prematurely before the async callAI function completes or handles an error.
+        callAI(message, 
             `User mentioned 'Oron'. Compliment him with 'big daddy' energy and dominance. MAXIMUM 15 words.`,
             'Oron'
         );
+        return; // Exit here after calling the async function non-awaited
     }
     
     // --- 5. GENERAL AI CHATBOT LOGIC (Mention required) ---
