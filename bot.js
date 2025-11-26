@@ -15,19 +15,19 @@ app.listen(port, () => {
 });
 
 // --- AI CONFIGURATION ---
-// SECURITY UPDATE: Strictly use environment variables.
-// You MUST set GEMINI_API_KEY in your Render Environment Variables.
 const aiKey = process.env.GEMINI_API_KEY;
 
-// Check if key is missing (prevents crash on startup, but logs warning)
 if (!aiKey) {
    console.error("⚠️ WARNING: GEMINI_API_KEY is missing in Environment Variables! AI features will not work.");
 }
 
 const genAI = new GoogleGenerativeAI(aiKey);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); 
 
-// --- MAIN AI PERSONA (For general chat) ---
+// FIX: Switched to 'gemini-pro' as it is the most stable model identifier 
+// when specific versions like 'flash-001' return 404 errors.
+const model = genAI.getGenerativeModel({ model: "gemini-pro" }); 
+
+// --- MAIN AI PERSONA ---
 const AGENT_PERSONA = `
 You are a discord bot named Abbi. 
 You are sarcastic, funny, and slightly chaotic. 
@@ -50,28 +50,25 @@ client.on('ready', () => {
 });
 
 client.on('messageCreate', async (message) => {
-    // Ignore messages from bots to prevent infinite loops
     if (message.author.bot) return;
     
     const content = message.content.trim();
     const lowerContent = content.toLowerCase();
 
-    // Helper function to call AI with a specific prompt
+    // Helper function to call AI
     const callAI = async (prompt) => {
         try {
             await message.channel.sendTyping();
             const result = await model.generateContent(prompt);
             const response = result.response.text();
-            // Ensure we don't exceed Discord limits (rare for short prompts but good practice)
             message.reply(response.substring(0, 2000));
         } catch (error) {
             console.error("AI Error:", error);
-            // Silent fail or minimal reaction for keywords to avoid spamming errors
+            // If the specific model fails, we log it but don't crash the bot
         }
     };
 
-    // --- 1. ABBI TRIGGER (Cute/Kitten) ---
-    // Trigger: If 'abbi' is mentioned in the text
+    // --- 1. ABBI TRIGGER ---
     if (lowerContent.includes('abbi')) {
         return callAI(`
             User mentioned 'Abbi'. 
@@ -80,8 +77,7 @@ client.on('messageCreate', async (message) => {
         `);
     }
 
-    // --- 2. AYA TRIGGER (Insults) ---
-    // Trigger: If 'aya' is mentioned in the text
+    // --- 2. AYA TRIGGER ---
     if (lowerContent.includes('aya')) {
         return callAI(`
             User mentioned 'Aya'. 
@@ -90,8 +86,7 @@ client.on('messageCreate', async (message) => {
         `);
     }
 
-    // --- 3. ORON TRIGGER (Big Daddy Energy) ---
-    // Trigger: If 'oron' is mentioned in the text
+    // --- 3. ORON TRIGGER ---
     if (lowerContent.includes('oron')) {
         return callAI(`
             User mentioned 'Oron'. 
@@ -101,7 +96,6 @@ client.on('messageCreate', async (message) => {
     }
 
     // --- 4. GENERAL AI CHATBOT LOGIC ---
-    // Only replies if the bot is directly Mentioned (@AbbiBot) AND none of the keywords above were triggered
     if (message.mentions.has(client.user)) {
         try {
             await message.channel.sendTyping();
