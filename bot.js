@@ -187,7 +187,7 @@ client.on('messageCreate', (message) => {
     const content = message.content.toLowerCase().trim();
     
     // Use if/else if to ensure only ONE response is sent per message
-    if (content.includes('hi') || content.includes('hello')) {
+    if (content.includes('haii') || content.includes('hello')) {
         // Send directly to the channel without tagging the user
         message.channel.send('haiii');
     } else if (content.includes('aya')) {
