@@ -48,6 +48,25 @@ const commands = [
         default_member_permissions: PermissionFlagsBits.BanMembers.toString()
     },
     {
+        name: 'unban',
+        description: 'Unban a user from the server',
+        options: [
+            {
+                name: 'user_id',
+                type: 3, // STRING type
+                description: 'The user ID to unban',
+                required: true
+            },
+            {
+                name: 'reason',
+                type: 3, // STRING type
+                description: 'Reason for the unban',
+                required: false
+            }
+        ],
+        default_member_permissions: PermissionFlagsBits.BanMembers.toString()
+    },
+    {
         name: 'kick',
         description: 'Kick a member from the server',
         options: [
@@ -77,9 +96,34 @@ const commands = [
                 required: true
             },
             {
+                name: 'duration',
+                type: 4, // INTEGER type
+                description: 'Duration in minutes (default: 10)',
+                required: false
+            },
+            {
                 name: 'reason',
                 type: 3, // STRING type
                 description: 'Reason for the mute',
+                required: false
+            }
+        ],
+        default_member_permissions: PermissionFlagsBits.ModerateMembers.toString()
+    },
+    {
+        name: 'unmute',
+        description: 'Unmute a member in the server',
+        options: [
+            {
+                name: 'user',
+                type: 6, // USER type
+                description: 'The user to unmute',
+                required: true
+            },
+            {
+                name: 'reason',
+                type: 3, // STRING type
+                description: 'Reason for the unmute',
                 required: false
             }
         ],
@@ -111,7 +155,7 @@ client.on('ready', async () => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
-    const { commandName, options, member } = interaction;
+    const { commandName, options, member, guild } = interaction;
 
     try {
         if (commandName === 'ban') {
@@ -123,8 +167,13 @@ client.on('interactionCreate', async (interaction) => {
                 return await interaction.reply({ content: '❌ You do not have permission to ban members.', ephemeral: true });
             }
 
-            const targetMember = interaction.guild.members.cache.get(user.id);
+            const targetMember = guild.members.cache.get(user.id);
             
+            // Check if bot has permission
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.reply({ content: '❌ I do not have permission to ban members. Please check my role permissions.', ephemeral: true });
+            }
+
             // Check if target is bannable
             if (!targetMember.bannable) {
                 return await interaction.reply({ content: '❌ I cannot ban this user. They might have higher permissions.', ephemeral: true });
@@ -132,6 +181,41 @@ client.on('interactionCreate', async (interaction) => {
 
             await targetMember.ban({ reason });
             await interaction.reply(`✅ Successfully banned **${user.tag}**. Reason: ${reason}`);
+
+        } else if (commandName === 'unban') {
+            const userId = options.getString('user_id');
+            const reason = options.getString('reason') || 'No reason provided';
+
+            // Check if user has permission
+            if (!member.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.reply({ content: '❌ You do not have permission to unban members.', ephemeral: true });
+            }
+
+            // Check if bot has permission
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.reply({ content: '❌ I do not have permission to unban members. Please check my role permissions.', ephemeral: true });
+            }
+
+            try {
+                // Validate user ID format
+                if (!/^\d{17,20}$/.test(userId)) {
+                    return await interaction.reply({ content: '❌ Invalid user ID format. Please provide a valid Discord user ID.', ephemeral: true });
+                }
+
+                // Fetch the ban to make sure the user is actually banned
+                await guild.bans.fetch(userId);
+                await guild.members.unban(userId, reason);
+                await interaction.reply(`✅ Successfully unbanned user with ID: **${userId}**. Reason: ${reason}`);
+            } catch (error) {
+                if (error.code === 10026) { // Unknown Ban error code
+                    await interaction.reply({ content: '❌ This user is not banned.', ephemeral: true });
+                } else if (error.code === 50035) { // Invalid User ID
+                    await interaction.reply({ content: '❌ Invalid user ID provided.', ephemeral: true });
+                } else {
+                    console.error('Unban error:', error);
+                    await interaction.reply({ content: '❌ There was an error unbanning this user. Make sure I have "Ban Members" permission.', ephemeral: true });
+                }
+            }
 
         } else if (commandName === 'kick') {
             const user = options.getUser('user');
@@ -142,7 +226,12 @@ client.on('interactionCreate', async (interaction) => {
                 return await interaction.reply({ content: '❌ You do not have permission to kick members.', ephemeral: true });
             }
 
-            const targetMember = interaction.guild.members.cache.get(user.id);
+            // Check if bot has permission
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.KickMembers)) {
+                return await interaction.reply({ content: '❌ I do not have permission to kick members. Please check my role permissions.', ephemeral: true });
+            }
+
+            const targetMember = guild.members.cache.get(user.id);
             
             // Check if target is kickable
             if (!targetMember.kickable) {
@@ -154,6 +243,7 @@ client.on('interactionCreate', async (interaction) => {
 
         } else if (commandName === 'mute') {
             const user = options.getUser('user');
+            const duration = options.getInteger('duration') || 10; // Default 10 minutes
             const reason = options.getString('reason') || 'No reason provided';
 
             // Check if user has permission
@@ -161,16 +251,59 @@ client.on('interactionCreate', async (interaction) => {
                 return await interaction.reply({ content: '❌ You do not have permission to mute members.', ephemeral: true });
             }
 
-            const targetMember = interaction.guild.members.cache.get(user.id);
+            // Check if bot has permission
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.reply({ content: '❌ I do not have permission to mute members. Please check my role permissions.', ephemeral: true });
+            }
+
+            const targetMember = guild.members.cache.get(user.id);
             
             // Check if target is moderatable
             if (!targetMember.moderatable) {
                 return await interaction.reply({ content: '❌ I cannot mute this user. They might have higher permissions.', ephemeral: true });
             }
 
-            // Mute for 10 minutes (600000 ms) - you can adjust this
-            await targetMember.timeout(10 * 60 * 1000, reason);
-            await interaction.reply(`✅ Successfully muted **${user.tag}** for 10 minutes. Reason: ${reason}`);
+            // Convert minutes to milliseconds
+            const durationMs = duration * 60 * 1000;
+            
+            // Check if duration is within Discord's limits (max 28 days)
+            if (durationMs > 28 * 24 * 60 * 60 * 1000) {
+                return await interaction.reply({ content: '❌ Mute duration cannot exceed 28 days.', ephemeral: true });
+            }
+
+            await targetMember.timeout(durationMs, reason);
+            
+            let durationText = duration === 1 ? '1 minute' : `${duration} minutes`;
+            await interaction.reply(`✅ Successfully muted **${user.tag}** for ${durationText}. Reason: ${reason}`);
+
+        } else if (commandName === 'unmute') {
+            const user = options.getUser('user');
+            const reason = options.getString('reason') || 'No reason provided';
+
+            // Check if user has permission
+            if (!member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.reply({ content: '❌ You do not have permission to unmute members.', ephemeral: true });
+            }
+
+            // Check if bot has permission
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.reply({ content: '❌ I do not have permission to unmute members. Please check my role permissions.', ephemeral: true });
+            }
+
+            const targetMember = guild.members.cache.get(user.id);
+            
+            // Check if target is moderatable
+            if (!targetMember.moderatable) {
+                return await interaction.reply({ content: '❌ I cannot unmute this user. They might have higher permissions.', ephemeral: true });
+            }
+
+            // Check if user is actually muted
+            if (!targetMember.isCommunicationDisabled()) {
+                return await interaction.reply({ content: '❌ This user is not muted.', ephemeral: true });
+            }
+
+            await targetMember.timeout(null, reason);
+            await interaction.reply(`✅ Successfully unmuted **${user.tag}**. Reason: ${reason}`);
         }
     } catch (error) {
         console.error('Error executing command:', error);
@@ -208,6 +341,9 @@ client.on('messageCreate', (message) => {
     } else if (content.includes('ethan')) {
         // Send directly to the channel without tagging the user
         message.channel.send('our bbg :3');
+    } else if (content.includes('randle')) {
+        // Send directly to the channel without tagging the user
+        message.channel.send('little omega');
     }
 });
 
