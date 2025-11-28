@@ -90,9 +90,10 @@ const bot1MessageMap = {
 
 // ➡️ Bot 2's unique phrases: (Utility/Game Bot)
 const bot2MessageMap = {
-    'kata': 'stfu',
+    'kata': 'stfu takeoff',
     'aeri': 'savs kitten',
     'sav': 'aeris kitten',
+    'abbi': 'stfu takeoff',
 };
 
 
