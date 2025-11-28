@@ -74,14 +74,17 @@ const allCommands = [
 
 // ➡️ Bot 1's unique phrases: (Main Bot/Mod Bot)
 const bot1MessageMap = {
-    'hi': 'Hello! I am the main ModBot.',
-    'hello': 'Hello! I am the main ModBot.',
+    'hai': 'haii:3',
+    'hello': 'hellooo',
     'aya': 'fat and retarded', 
     'oron': 'your daddy',
     'fatran': 'airpor/10',
     'abbi': 'best kitten',
-    'soobie': 'busy eating fried chicken',
+    'soobie': 'soobins wife',
+    'yue': 'looking for a gf',
+    'randle': 'little omega',
     'ethan': 'our bbg :3',
+    'xu': 'queen',
     'ping': 'pong!',
 };
 
