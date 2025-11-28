@@ -1,49 +1,31 @@
 const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits } = require('discord.js');
-const express = require('express');
+const express = require('express'); // <-- **FIXED:** Removed the extra 'require'
 
-// --- 1. EXPRESS SERVER (for Render/Hosting Health Check) ---
-
+// =================================================================
+// 1. EXPRESS SERVER SETUP (Required for Render Free Tier Keep-Alive)
+// =================================================================
 const app = express();
-// Use the port provided by the hosting environment (Render)
 const port = process.env.PORT || 3000;
 
-// Keep-alive server endpoint
 app.get('/', (req, res) => {
-    res.status(200).send('Discord Bot is running and responding to basic commands.');
+    res.status(200).send('Dual Discord Bot Service is running and responding to health checks.');
 });
 
-// --- 2. DISCORD CLIENT SETUP ---
-
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent, // Necessary to read message content
-        GatewayIntentBits.GuildMembers // Needed for moderation commands
-    ]
+app.listen(port, () => {
+    console.log(`🔄 Keep-alive server running on port ${port}`);
 });
 
-// Create a collection for commands
-client.commands = new Collection();
+// =================================================================
+// 2. CORE COMMAND DEFINITIONS (Shared by Both Bots)
+// =================================================================
 
-// Define slash commands
-const commands = [
+const allCommands = [
     {
         name: 'ban',
         description: 'Ban a member from the server',
         options: [
-            {
-                name: 'user',
-                type: 6, // USER type
-                description: 'The user to ban',
-                required: true
-            },
-            {
-                name: 'reason',
-                type: 3, // STRING type
-                description: 'Reason for the ban',
-                required: false
-            }
+            { name: 'user', type: 6, description: 'The user to ban', required: true },
+            { name: 'reason', type: 3, description: 'Reason for the ban', required: false }
         ],
         default_member_permissions: PermissionFlagsBits.BanMembers.toString()
     },
@@ -51,18 +33,8 @@ const commands = [
         name: 'unban',
         description: 'Unban a user from the server',
         options: [
-            {
-                name: 'user_id',
-                type: 3, // STRING type
-                description: 'The user ID to unban',
-                required: true
-            },
-            {
-                name: 'reason',
-                type: 3, // STRING type
-                description: 'Reason for the unban',
-                required: false
-            }
+            { name: 'user_id', type: 3, description: 'The user ID to unban', required: true },
+            { name: 'reason', type: 3, description: 'Reason for the unban', required: false }
         ],
         default_member_permissions: PermissionFlagsBits.BanMembers.toString()
     },
@@ -70,18 +42,8 @@ const commands = [
         name: 'kick',
         description: 'Kick a member from the server',
         options: [
-            {
-                name: 'user',
-                type: 6, // USER type
-                description: 'The user to kick',
-                required: true
-            },
-            {
-                name: 'reason',
-                type: 3, // STRING type
-                description: 'Reason for the kick',
-                required: false
-            }
+            { name: 'user', type: 6, description: 'The user to kick', required: true },
+            { name: 'reason', type: 3, description: 'Reason for the kick', required: false }
         ],
         default_member_permissions: PermissionFlagsBits.KickMembers.toString()
     },
@@ -89,24 +51,9 @@ const commands = [
         name: 'mute',
         description: 'Mute a member in the server',
         options: [
-            {
-                name: 'user',
-                type: 6, // USER type
-                description: 'The user to mute',
-                required: true
-            },
-            {
-                name: 'duration',
-                type: 4, // INTEGER type
-                description: 'Duration in minutes (default: 10)',
-                required: false
-            },
-            {
-                name: 'reason',
-                type: 3, // STRING type
-                description: 'Reason for the mute',
-                required: false
-            }
+            { name: 'user', type: 6, description: 'The user to mute', required: true },
+            { name: 'duration', type: 4, description: 'Duration in minutes (default: 10)', required: false },
+            { name: 'reason', type: 3, description: 'Reason for the mute', required: false }
         ],
         default_member_permissions: PermissionFlagsBits.ModerateMembers.toString()
     },
@@ -114,255 +61,230 @@ const commands = [
         name: 'unmute',
         description: 'Unmute a member in the server',
         options: [
-            {
-                name: 'user',
-                type: 6, // USER type
-                description: 'The user to unmute',
-                required: true
-            },
-            {
-                name: 'reason',
-                type: 3, // STRING type
-                description: 'Reason for the unmute',
-                required: false
-            }
+            { name: 'user', type: 6, description: 'The user to unmute', required: true },
+            { name: 'reason', type: 3, description: 'Reason for the unmute', required: false }
         ],
         default_member_permissions: PermissionFlagsBits.ModerateMembers.toString()
     }
 ];
 
-// Register commands when bot is ready
-client.on('ready', async () => {
-    console.log(`✅ Bot is online as ${client.user.tag}`);
-    client.user.setActivity('for simple phrases', { type: 'WATCHING' });
+// =================================================================
+// 3. SEPARATED REPLY DICTIONARIES
+// =================================================================
 
-    // Register slash commands
-    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+// ➡️ Bot 1's unique phrases: (Main Bot/Mod Bot)
+const bot1MessageMap = {
+    'hi': 'Hello! I am the main ModBot.',
+    'hello': 'Hello! I am the main ModBot.',
+    'aya': 'fat and retarded', 
+    'oron': 'your daddy',
+    'fatran': 'airpor/10',
+    'abbi': 'best kitten',
+    'soobie': 'busy eating fried chicken',
+    'ethan': 'our bbg :3',
+    'ping': 'pong!',
+};
 
-    try {
-        console.log('🔄 Registering slash commands...');
-        await rest.put(
-            Routes.applicationCommands(client.user.id),
-            { body: commands }
-        );
-        console.log('✅ Slash commands registered successfully!');
-    } catch (error) {
-        console.error('❌ Error registering commands:', error);
+// ➡️ Bot 2's unique phrases: (Utility/Game Bot)
+const bot2MessageMap = {
+    'kata': 'stfu',
+    'aeri': 'savs kitten',
+    'sav': 'aeris kitten',
+};
+
+
+// =================================================================
+// 4. REUSABLE HANDLER FUNCTIONS
+// =================================================================
+
+const handleMessageReplies = (messageMap, message) => {
+    if (message.author.bot) return;
+    const content = message.content.toLowerCase().trim();
+    
+    for (const [trigger, reply] of Object.entries(messageMap)) {
+        if (content.includes(trigger)) {
+            message.channel.send(reply);
+            return; 
+        }
     }
-});
+};
 
-// Handle slash command interactions
-client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isChatInputCommand()) return;
-
+const handleSlashCommands = async (interaction, client) => {
     const { commandName, options, member, guild } = interaction;
+    const botTag = client.user.tag;
 
     try {
         if (commandName === 'ban') {
             const user = options.getUser('user');
             const reason = options.getString('reason') || 'No reason provided';
-
-            // Check if user has permission
             if (!member.permissions.has(PermissionFlagsBits.BanMembers)) {
                 return await interaction.reply({ content: '❌ You do not have permission to ban members.', ephemeral: true });
             }
-
-            const targetMember = guild.members.cache.get(user.id);
-            
-            // Check if bot has permission
             if (!guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
-                return await interaction.reply({ content: '❌ I do not have permission to ban members. Please check my role permissions.', ephemeral: true });
+                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to ban members. Please check my role permissions.`, ephemeral: true });
             }
-
-            // Check if target is bannable
-            if (!targetMember.bannable) {
+            const targetMember = guild.members.cache.get(user.id);
+            if (!targetMember || !targetMember.bannable) {
                 return await interaction.reply({ content: '❌ I cannot ban this user. They might have higher permissions.', ephemeral: true });
             }
-
             await targetMember.ban({ reason });
-            await interaction.reply(`✅ Successfully banned **${user.tag}**. Reason: ${reason}`);
+            await interaction.reply(`✅ Successfully banned **${user.tag}** using ${botTag}. Reason: ${reason}`);
 
         } else if (commandName === 'unban') {
             const userId = options.getString('user_id');
             const reason = options.getString('reason') || 'No reason provided';
-
-            // Check if user has permission
             if (!member.permissions.has(PermissionFlagsBits.BanMembers)) {
                 return await interaction.reply({ content: '❌ You do not have permission to unban members.', ephemeral: true });
             }
-
-            // Check if bot has permission
             if (!guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
-                return await interaction.reply({ content: '❌ I do not have permission to unban members. Please check my role permissions.', ephemeral: true });
+                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to unban members. Please check my role permissions.`, ephemeral: true });
             }
-
             try {
-                // Validate user ID format
                 if (!/^\d{17,20}$/.test(userId)) {
                     return await interaction.reply({ content: '❌ Invalid user ID format. Please provide a valid Discord user ID.', ephemeral: true });
                 }
-
-                // Fetch the ban to make sure the user is actually banned
                 await guild.bans.fetch(userId);
                 await guild.members.unban(userId, reason);
-                await interaction.reply(`✅ Successfully unbanned user with ID: **${userId}**. Reason: ${reason}`);
+                await interaction.reply(`✅ Successfully unbanned user with ID: **${userId}** using ${botTag}. Reason: ${reason}`);
             } catch (error) {
-                if (error.code === 10026) { // Unknown Ban error code
-                    await interaction.reply({ content: '❌ This user is not banned.', ephemeral: true });
-                } else if (error.code === 50035) { // Invalid User ID
-                    await interaction.reply({ content: '❌ Invalid user ID provided.', ephemeral: true });
-                } else {
-                    console.error('Unban error:', error);
-                    await interaction.reply({ content: '❌ There was an error unbanning this user. Make sure I have "Ban Members" permission.', ephemeral: true });
-                }
+                const errorContent = (error.code === 10026) ? '❌ This user is not banned.' : '❌ There was an error unbanning this user.';
+                await interaction.reply({ content: errorContent, ephemeral: true });
             }
 
         } else if (commandName === 'kick') {
             const user = options.getUser('user');
             const reason = options.getString('reason') || 'No reason provided';
-
-            // Check if user has permission
             if (!member.permissions.has(PermissionFlagsBits.KickMembers)) {
                 return await interaction.reply({ content: '❌ You do not have permission to kick members.', ephemeral: true });
             }
-
-            // Check if bot has permission
             if (!guild.members.me.permissions.has(PermissionFlagsBits.KickMembers)) {
-                return await interaction.reply({ content: '❌ I do not have permission to kick members. Please check my role permissions.', ephemeral: true });
+                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to kick members. Please check my role permissions.`, ephemeral: true });
             }
-
             const targetMember = guild.members.cache.get(user.id);
-            
-            // Check if target is kickable
-            if (!targetMember.kickable) {
+            if (!targetMember || !targetMember.kickable) {
                 return await interaction.reply({ content: '❌ I cannot kick this user. They might have higher permissions.', ephemeral: true });
             }
-
             await targetMember.kick(reason);
-            await interaction.reply(`✅ Successfully kicked **${user.tag}**. Reason: ${reason}`);
+            await interaction.reply(`✅ Successfully kicked **${user.tag}** using ${botTag}. Reason: ${reason}`);
 
         } else if (commandName === 'mute') {
             const user = options.getUser('user');
-            const duration = options.getInteger('duration') || 10; // Default 10 minutes
+            const duration = options.getInteger('duration') || 10;
             const reason = options.getString('reason') || 'No reason provided';
-
-            // Check if user has permission
             if (!member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
                 return await interaction.reply({ content: '❌ You do not have permission to mute members.', ephemeral: true });
             }
-
-            // Check if bot has permission
             if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-                return await interaction.reply({ content: '❌ I do not have permission to mute members. Please check my role permissions.', ephemeral: true });
+                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to mute members. Please check my role permissions.`, ephemeral: true });
             }
-
             const targetMember = guild.members.cache.get(user.id);
-            
-            // Check if target is moderatable
-            if (!targetMember.moderatable) {
+            if (!targetMember || !targetMember.moderatable) {
                 return await interaction.reply({ content: '❌ I cannot mute this user. They might have higher permissions.', ephemeral: true });
             }
-
-            // Convert minutes to milliseconds
             const durationMs = duration * 60 * 1000;
-            
-            // Check if duration is within Discord's limits (max 28 days)
             if (durationMs > 28 * 24 * 60 * 60 * 1000) {
                 return await interaction.reply({ content: '❌ Mute duration cannot exceed 28 days.', ephemeral: true });
             }
-
             await targetMember.timeout(durationMs, reason);
-            
             let durationText = duration === 1 ? '1 minute' : `${duration} minutes`;
-            await interaction.reply(`✅ Successfully muted **${user.tag}** for ${durationText}. Reason: ${reason}`);
+            await interaction.reply(`✅ Successfully muted **${user.tag}** for ${durationText} using ${botTag}. Reason: ${reason}`);
 
         } else if (commandName === 'unmute') {
             const user = options.getUser('user');
             const reason = options.getString('reason') || 'No reason provided';
-
-            // Check if user has permission
             if (!member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
                 return await interaction.reply({ content: '❌ You do not have permission to unmute members.', ephemeral: true });
             }
-
-            // Check if bot has permission
             if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-                return await interaction.reply({ content: '❌ I do not have permission to unmute members. Please check my role permissions.', ephemeral: true });
+                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to unmute members. Please check my role permissions.`, ephemeral: true });
             }
-
             const targetMember = guild.members.cache.get(user.id);
-            
-            // Check if target is moderatable
-            if (!targetMember.moderatable) {
+            if (!targetMember || !targetMember.moderatable) {
                 return await interaction.reply({ content: '❌ I cannot unmute this user. They might have higher permissions.', ephemeral: true });
             }
-
-            // Check if user is actually muted
             if (!targetMember.isCommunicationDisabled()) {
                 return await interaction.reply({ content: '❌ This user is not muted.', ephemeral: true });
             }
-
             await targetMember.timeout(null, reason);
-            await interaction.reply(`✅ Successfully unmuted **${user.tag}**. Reason: ${reason}`);
+            await interaction.reply(`✅ Successfully unmuted **${user.tag}** using ${botTag}. Reason: ${reason}`);
         }
     } catch (error) {
-        console.error('Error executing command:', error);
-        await interaction.reply({ content: '❌ There was an error executing this command.', ephemeral: true });
+        console.error(`Error executing command on ${botTag}:`, error);
+        await interaction.reply({ content: `❌ There was an error executing this command on ${botTag}.`, ephemeral: true });
     }
-});
+};
 
-// Your existing message reply functionality (unchanged)
-client.on('messageCreate', (message) => {
-    // Ignore messages from the bot itself
-    if (message.author.bot) return;
-    
-    // Normalize and clean the message content for easy matching
-    const content = message.content.toLowerCase().trim();
-    
-    // Use if/else if to ensure only ONE response is sent per message
-    if (content.includes('haii') || content.includes('hello')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('haiii');
-    } else if (content.includes('aya')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('fat and retarded');
-    } else if (content.includes('oron')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('your daddy');
-    } else if (content.includes('abbi')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('best kitten');
-    } else if (content.includes('fatran')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('airpor/10');
-    } else if (content.includes('soobie')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('busy eating fried chicken');
-    } else if (content.includes('ethan')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('our bbg :3');
-    } else if (content.includes('randle')) {
-        // Send directly to the channel without tagging the user
-        message.channel.send('little omega');
+
+// =================================================================
+// 5. THE DUAL-BOT FACTORY
+// =================================================================
+
+function createAndStartBot(tokenKey, botName, commandList, messageMap) {
+    const TOKEN = process.env[tokenKey];
+    if (!TOKEN) {
+        console.error(`❌ Error: ${tokenKey} is missing in Environment Variables! Skipping ${botName}.`);
+        return null;
     }
-});
 
-// --- 3. INITIALIZATION ---
-
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-
-if (!DISCORD_TOKEN) {
-    console.error("❌ Error: DISCORD_TOKEN is missing in Environment Variables! Bot will not start.");
-} else {
-    // Start the Discord Bot
-    client.login(DISCORD_TOKEN)
-        .catch(err => {
-            console.error("🚨 Failed to log into Discord:", err);
-            process.exit(1);
-        });
-
-    // Start the Express server for health checks
-    app.listen(port, () => {
-        console.log(`🔄 Keep-alive server running on port ${port}`);
+    const client = new Client({
+        intents: [
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.MessageContent,
+            GatewayIntentBits.GuildMembers
+        ]
     });
+
+    client.on('ready', async () => {
+        console.log(`✅ ${botName} is online as ${client.user.tag}`);
+        client.user.setActivity(`Monitoring as ${botName}`, { type: 'WATCHING' });
+
+        const rest = new REST({ version: '10' }).setToken(TOKEN);
+
+        try {
+            console.log(`🔄 Registering slash commands for ${botName}...`);
+            await rest.put(
+                Routes.applicationCommands(client.user.id),
+                { body: commandList }
+            );
+            console.log(`✅ Slash commands registered successfully for ${botName}!`);
+        } catch (error) {
+            console.error(`❌ Error registering commands for ${botName}:`, error);
+        }
+    });
+
+    client.on('interactionCreate', async (interaction) => {
+        if (!interaction.isChatInputCommand()) return;
+        await handleSlashCommands(interaction, client);
+    });
+
+    client.on('messageCreate', (message) => {
+        handleMessageReplies(messageMap, message);
+    });
+    
+    client.login(TOKEN).catch(err => {
+        console.error(`🚨 Failed to log into Discord for ${botName}:`, err);
+    });
+
+    return client;
 }
+
+// =================================================================
+// 6. EXECUTION: START BOTH BOTS
+// =================================================================
+
+const bot1 = createAndStartBot(
+    "DISCORD_TOKEN_1", 
+    "Bot A - Main Mod", 
+    allCommands,       
+    bot1MessageMap     
+);
+
+const bot2 = createAndStartBot(
+    "DISCORD_TOKEN_2", 
+    "Bot B - Utility", 
+    allCommands,       
+    bot2MessageMap     
+);
+
+console.log("Two bot clients initialized in a single process. Check Render logs for status.");
