@@ -90,10 +90,10 @@ const bot1MessageMap = {
 
 // ➡️ Bot 2's unique phrases: (Utility/Game Bot)
 const bot2MessageMap = {
-    'kata': 'stfu takeoff',
+    'kata': '🐗', // 🎉 **Boar Emoji added here!**
     'aeri': 'savs kitten',
     'sav': 'aeris kitten',
-    'abbi': 'stfu takeoff',
+    'abbi': 'stfu',
 };
 
 
@@ -200,95 +200,4 @@ const handleSlashCommands = async (interaction, client) => {
                 return await interaction.reply({ content: '❌ You do not have permission to unmute members.', ephemeral: true });
             }
             if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to unmute members. Please check my role permissions.`, ephemeral: true });
-            }
-            const targetMember = guild.members.cache.get(user.id);
-            if (!targetMember || !targetMember.moderatable) {
-                return await interaction.reply({ content: '❌ I cannot unmute this user. They might have higher permissions.', ephemeral: true });
-            }
-            if (!targetMember.isCommunicationDisabled()) {
-                return await interaction.reply({ content: '❌ This user is not muted.', ephemeral: true });
-            }
-            await targetMember.timeout(null, reason);
-            await interaction.reply(`✅ Successfully unmuted **${user.tag}** using ${botTag}. Reason: ${reason}`);
-        }
-    } catch (error) {
-        console.error(`Error executing command on ${botTag}:`, error);
-        await interaction.reply({ content: `❌ There was an error executing this command on ${botTag}.`, ephemeral: true });
-    }
-};
-
-
-// =================================================================
-// 5. THE DUAL-BOT FACTORY
-// =================================================================
-
-function createAndStartBot(tokenKey, botName, commandList, messageMap) {
-    const TOKEN = process.env[tokenKey];
-    if (!TOKEN) {
-        console.error(`❌ Error: ${tokenKey} is missing in Environment Variables! Skipping ${botName}.`);
-        return null;
-    }
-
-    const client = new Client({
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.MessageContent,
-            GatewayIntentBits.GuildMembers
-        ]
-    });
-
-    client.on('ready', async () => {
-        console.log(`✅ ${botName} is online as ${client.user.tag}`);
-        client.user.setActivity(`Monitoring as ${botName}`, { type: 'WATCHING' });
-
-        const rest = new REST({ version: '10' }).setToken(TOKEN);
-
-        try {
-            console.log(`🔄 Registering slash commands for ${botName}...`);
-            await rest.put(
-                Routes.applicationCommands(client.user.id),
-                { body: commandList }
-            );
-            console.log(`✅ Slash commands registered successfully for ${botName}!`);
-        } catch (error) {
-            console.error(`❌ Error registering commands for ${botName}:`, error);
-        }
-    });
-
-    client.on('interactionCreate', async (interaction) => {
-        if (!interaction.isChatInputCommand()) return;
-        await handleSlashCommands(interaction, client);
-    });
-
-    client.on('messageCreate', (message) => {
-        handleMessageReplies(messageMap, message);
-    });
-    
-    client.login(TOKEN).catch(err => {
-        console.error(`🚨 Failed to log into Discord for ${botName}:`, err);
-    });
-
-    return client;
-}
-
-// =================================================================
-// 6. EXECUTION: START BOTH BOTS
-// =================================================================
-
-const bot1 = createAndStartBot(
-    "DISCORD_TOKEN_1", 
-    "Bot A - Main Mod", 
-    allCommands,       
-    bot1MessageMap     
-);
-
-const bot2 = createAndStartBot(
-    "DISCORD_TOKEN_2", 
-    "Bot B - Utility", 
-    allCommands,       
-    bot2MessageMap     
-);
-
-console.log("Two bot clients initialized in a single process. Check Render logs for status.");
+                return await interaction.reply({ content: `❌ I (${botTag}) do not have permission to unmute members. Please check my role permissions.`, ephemeral: true
