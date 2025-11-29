@@ -93,7 +93,7 @@ const bot2MessageMap = {
     'kata': '🐗', // Boar Emoji Reply
     'aeri': 'savs kitten',
     'sav': 'aeris kitten',
-    'abbi': 'stfu takeoff',
+    'abbi': 'stfu',
 };
 
 
