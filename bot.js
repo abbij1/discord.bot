@@ -31,7 +31,6 @@ const allCommands = [
 // 3. SEPARATED REPLY DICTIONARIES
 // =================================================================
 
-// ➡️ Bot 1's unique phrases: (Main Bot/Mod Bot)
 const bot1MessageMap = {
     'hai': 'haii:3', 'hello': 'hellooo', 'aya': 'fat and retarded', 'oron': 'your daddy', 'fatran': 'airpor/10',
     'abbi': 'best kitten', 'soobie': 'soobins wife', 'yue': 'looking for a gf', 'randle': 'little omega', 'ethan': 'our bbg :3',
@@ -63,7 +62,115 @@ const handleMessageReplies = (messageMap, message) => {
 const handleSlashCommands = async (interaction, client) => {
     const { commandName, options, member, guild } = interaction;
     const botTag = client.user.tag;
-    // ... (logic omitted for brevity) ...
+    
+    // FIX 1: Defer reply immediately to prevent Discord timeout (3 seconds)
+    await interaction.deferReply({ ephemeral: false }).catch(console.error); 
+
+    try {
+        if (commandName === 'ban') {
+            const user = options.getUser('user');
+            const reason = options.getString('reason') || 'No reason provided';
+            if (!member.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.editReply({ content: '❌ You do not have permission to ban members.', ephemeral: true });
+            }
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.editReply({ content: `❌ I (${botTag}) do not have permission to ban members. Please check my role permissions.`, ephemeral: true });
+            }
+            const targetMember = guild.members.cache.get(user.id);
+            if (!targetMember || !targetMember.bannable) {
+                return await interaction.editReply({ content: '❌ I cannot ban this user. They might have higher permissions.', ephemeral: true });
+            }
+            await targetMember.ban({ reason });
+            await interaction.editReply(`✅ Successfully banned **${user.tag}** using ${botTag}. Reason: ${reason}`);
+
+        } else if (commandName === 'unban') {
+            const userId = options.getString('user_id');
+            const reason = options.getString('reason') || 'No reason provided';
+            if (!member.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.editReply({ content: '❌ You do not have permission to unban members.', ephemeral: true });
+            }
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.BanMembers)) {
+                return await interaction.editReply({ content: `❌ I (${botTag}) do not have permission to unban members. Please check my role permissions.`, ephemeral: true });
+            }
+            try {
+                if (!/^\d{17,20}$/.test(userId)) {
+                    return await interaction.editReply({ content: '❌ Invalid user ID format. Please provide a valid Discord user ID.', ephemeral: true });
+                }
+                await guild.bans.fetch(userId);
+                await guild.members.unban(userId, reason);
+                await interaction.editReply(`✅ Successfully unbanned user with ID: **${userId}** using ${botTag}. Reason: ${reason}`);
+            } catch (error) {
+                const errorContent = (error.code === 10026) ? '❌ This user is not banned.' : '❌ There was an error unbanning this user.';
+                await interaction.editReply({ content: errorContent, ephemeral: true });
+            }
+
+        } else if (commandName === 'kick') {
+            const user = options.getUser('user');
+            const reason = options.getString('reason') || 'No reason provided';
+            if (!member.permissions.has(PermissionFlagsBits.KickMembers)) {
+                return await interaction.editReply({ content: '❌ You do not have permission to kick members.', ephemeral: true });
+            }
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.KickMembers)) {
+                return await interaction.editReply({ content: `❌ I (${botTag}) do not have permission to kick members. Please check my role permissions.`, ephemeral: true });
+            }
+            const targetMember = guild.members.cache.get(user.id);
+            if (!targetMember || !targetMember.kickable) {
+                return await interaction.editReply({ content: '❌ I cannot kick this user. They might have higher permissions.', ephemeral: true });
+            }
+            await targetMember.kick(reason);
+            await interaction.editReply(`✅ Successfully kicked **${user.tag}** using ${botTag}. Reason: ${reason}`);
+
+        } else if (commandName === 'mute') {
+            const user = options.getUser('user');
+            const duration = options.getInteger('duration') || 10;
+            const reason = options.getString('reason') || 'No reason provided';
+            if (!member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.editReply({ content: '❌ You do not have permission to mute members.', ephemeral: true });
+            }
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.editReply({ content: `❌ I (${botTag}) do not have permission to mute members. Please check my role permissions.`, ephemeral: true });
+            }
+            const targetMember = guild.members.cache.get(user.id);
+            if (!targetMember || !targetMember.moderatable) {
+                return await interaction.editReply({ content: '❌ I cannot mute this user. They might have higher permissions.', ephemeral: true });
+            }
+            const durationMs = duration * 60 * 1000;
+            if (durationMs > 28 * 24 * 60 * 60 * 1000) {
+                return await interaction.editReply({ content: '❌ Mute duration cannot exceed 28 days.', ephemeral: true });
+            }
+            await targetMember.timeout(durationMs, reason);
+            let durationText = duration === 1 ? '1 minute' : `${duration} minutes`;
+            await interaction.editReply(`✅ Successfully muted **${user.tag}** for ${durationText} using ${botTag}. Reason: ${reason}`);
+
+        } else if (commandName === 'unmute') {
+            const user = options.getUser('user');
+            const reason = options.getString('reason') || 'No reason provided';
+            if (!member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.editReply({ content: '❌ You do not have permission to unmute members.', ephemeral: true });
+            }
+            if (!guild.members.me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                return await interaction.editReply({ content: `❌ I (${botTag}) do not have permission to unmute members. Please check my role permissions.`, ephemeral: true });
+            }
+            const targetMember = guild.members.cache.get(user.id);
+            if (!targetMember || !targetMember.moderatable) {
+                return await interaction.editReply({ content: '❌ I cannot unmute this user. They might have higher permissions.', ephemeral: true });
+            }
+            if (!targetMember.isCommunicationDisabled()) {
+                return await interaction.editReply({ content: '❌ This user is not muted.', ephemeral: true });
+            }
+            await targetMember.timeout(null, reason);
+            await interaction.editReply(`✅ Successfully unmuted **${user.tag}** using ${botTag}. Reason: ${reason}`);
+        }
+    } catch (error) {
+        console.error(`Error executing command on ${botTag}:`, error);
+        // FIX 2: Ensure an editReply occurs even on error
+        if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: `❌ There was an unexpected error executing this command on ${botTag}.`, ephemeral: true });
+        } else {
+             // Fallback just in case deferral failed
+            await interaction.reply({ content: `❌ There was an unexpected error executing this command on ${botTag}.`, ephemeral: true });
+        }
+    }
 };
 
 
