@@ -63,7 +63,7 @@ const handleSlashCommands = async (interaction, client) => {
     const { commandName, options, member, guild } = interaction;
     const botTag = client.user.tag;
     
-    // FIX 1: Defer reply immediately to prevent Discord timeout (3 seconds)
+    // Defer reply immediately to prevent Discord timeout (3 seconds)
     await interaction.deferReply({ ephemeral: false }).catch(console.error); 
 
     try {
@@ -163,11 +163,9 @@ const handleSlashCommands = async (interaction, client) => {
         }
     } catch (error) {
         console.error(`Error executing command on ${botTag}:`, error);
-        // FIX 2: Ensure an editReply occurs even on error
         if (interaction.deferred || interaction.replied) {
             await interaction.editReply({ content: `❌ There was an unexpected error executing this command on ${botTag}.`, ephemeral: true });
         } else {
-             // Fallback just in case deferral failed
             await interaction.reply({ content: `❌ There was an unexpected error executing this command on ${botTag}.`, ephemeral: true });
         }
     }
@@ -243,7 +241,6 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
             // Construct the Embed message 
             const welcomeEmbed = new EmbedBuilder()
                 .setColor(0x2F3136) 
-                // Uses the final, verified direct GIF link
                 .setThumbnail(WELCOME_GIF_URL) 
                 
                 .addFields({
@@ -279,7 +276,8 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
                 return;
             }
 
-            const logMessage = `👋 **${member.user.tag}** (${member.user.id}) has left the server.`;
+            // 👇 CORRECTED LEAVE MESSAGE: Uses the actual user tag (username#0000)
+            const logMessage = `${member.user.tag} just ate a dih`;
             
             await logChannel.send(logMessage);
         } catch (error) {
