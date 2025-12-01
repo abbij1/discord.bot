@@ -87,11 +87,11 @@ const bot1MessageMap = {
     'xu': 'queen',
     'ping': 'pong!',
     
-    // ⭐️ FINAL 'WELCOME' MULTI-LINE STRING REPLY WITH IDs ⭐️
-    // 1. Channel ID is 1241372105694515290
-    // 2. EMOJI ID placeholder is YOUR_EMOJI_ID_NUMBER
-    // 3. User ID placeholder is <@!USER_ID_OF_WONY>
-    'welcome': "**stay active & read <#1241372105694515290>** "<:d_004:1360082620733456544>\n" +
+    // ⭐️ FIXED 'WELCOME' MULTI-LINE STRING REPLY ⭐️
+    // ACTION REQUIRED: Replace <@!USER_ID_OF_WONY> with the actual User ID of wony.
+    // Fixed string concatenation and restored the full message structure.
+    'welcome': "**stay active & read <@!USER_ID_OF_WONY> .𝄞: #xoxz > <#1241372105694515290>**\n" +
+               "<:d_004:1360082620733456544>\n" +
                "*/wony in status for pic perms !*", 
 };
 
