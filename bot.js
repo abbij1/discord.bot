@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits } = require('discord.js');
 const express = require('express');
 
 // =================================================================
@@ -87,28 +87,11 @@ const bot1MessageMap = {
     'xu': 'queen',
     'ping': 'pong!',
     
-    // ⭐️ FINAL EMBED FOR ANIMATED EMOJI DISPLAY ⭐️
-    // Using <a:NAME:ID> and Embeds is the most reliable way for animated emojis.
+    // ⭐️ SWITCHED BACK TO PLAIN TEXT STRING (NO BOX) ⭐️
+    // NOTE: Animated emoji display (a:d_004:...) may require Discord Nitro in plain messages.
     // Channel ID: 1241372105694515290 | Emoji ID: 1360082620733456544
-    'welcome': { 
-        isEmbed: true,
-        data: {
-            // Dark background color for a seamless look
-            color: 0x2f3136, 
-            
-            // Primary line (bold) with channel mention and animated emoji
-            description: "**stay active & read <#1241372105694515290>** <a:d_004:1360082620733456544>", 
-            
-            // Secondary line (italics for small font) in a field
-            fields: [
-                {
-                    name: '\u200B', // Zero Width Space for a clean line break/separator
-                    value: '*/wony in status for pic perms !*', 
-                    inline: false,
-                },
-            ],
-        }
-    }
+    'welcome': "**stay active & read <#1241372105694515290>** <a:d_004:1360082620733456544>\n" +
+               "*/wony in status for pic perms !*", 
 };
 
 // ➡️ Bot 2's unique phrases: (Utility/Game Bot)
@@ -130,15 +113,9 @@ const handleMessageReplies = (messageMap, message) => {
     
     for (const [trigger, reply] of Object.entries(messageMap)) {
         if (content.includes(trigger)) {
-            
-            // Logic to handle Embeds
-            if (typeof reply === 'object' && reply.isEmbed) {
-                const embed = new EmbedBuilder(reply.data);
-                message.channel.send({ embeds: [embed] });
-            } else {
-                // Otherwise, send the plain string reply
-                message.channel.send(reply);
-            }
+            // All replies are now simple strings containing markdown
+            // NOTE: The logic for handling embeds has been removed.
+            message.channel.send(reply); 
             return; 
         }
     }
