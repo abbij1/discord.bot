@@ -87,22 +87,23 @@ const bot1MessageMap = {
     'xu': 'queen',
     'ping': 'pong!',
     
-    // ⭐️ SWITCHING TO EMBED FOR RELIABLE CUSTOM EMOJI DISPLAY ⭐️
+    // ⭐️ FINAL EMBED FOR ANIMATED EMOJI DISPLAY ⭐️
+    // Using <a:NAME:ID> and Embeds is the most reliable way for animated emojis.
+    // Channel ID: 1241372105694515290 | Emoji ID: 1360082620733456544
     'welcome': { 
         isEmbed: true,
         data: {
-            // Set the color to Discord's dark mode background for a "seamless" look, or leave it out (0x2f3136)
+            // Dark background color for a seamless look
             color: 0x2f3136, 
             
-            // The main text goes in the description. Note: Bold (**) is used for slight emphasis.
-            // Emoji and Channel ID are now correctly inserted.
-            description: "**stay active & read <#1241372105694515290>** <:d_004:1360082620733456544>", 
+            // Primary line (bold) with channel mention and animated emoji
+            description: "**stay active & read <#1241372105694515290>** <a:d_004:1360082620733456544>", 
             
-            // The small, second line goes into a field for separate, smaller formatting.
+            // Secondary line (italics for small font) in a field
             fields: [
                 {
-                    name: ' ', // Empty name to act as a line break/separator
-                    value: '*/wony in status for pic perms !*', // Italics give a smaller font look
+                    name: '\u200B', // Zero Width Space for a clean line break/separator
+                    value: '*/wony in status for pic perms !*', 
                     inline: false,
                 },
             ],
@@ -130,13 +131,12 @@ const handleMessageReplies = (messageMap, message) => {
     for (const [trigger, reply] of Object.entries(messageMap)) {
         if (content.includes(trigger)) {
             
-            // ⭐️ MODIFIED LOGIC TO HANDLE EMBEDS ⭐️
+            // Logic to handle Embeds
             if (typeof reply === 'object' && reply.isEmbed) {
-                // If the reply is an object flagged as an Embed, construct and send it
                 const embed = new EmbedBuilder(reply.data);
                 message.channel.send({ embeds: [embed] });
             } else {
-                // Otherwise, send the plain string reply (original behavior)
+                // Otherwise, send the plain string reply
                 message.channel.send(reply);
             }
             return; 
