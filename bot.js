@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const express = require('express');
 
 // =================================================================
@@ -87,9 +87,7 @@ const bot1MessageMap = {
     'xu': 'queen',
     'ping': 'pong!',
     
-    // ⭐️ WELCOME MESSAGE: PLAIN TEXT FIX ⭐️
-    // Uses plain text to avoid the embed box. Animated emoji (<a:...>) may not display for all users.
-    // Channel ID: 1241372105694515290 | Emoji ID: 1360082620733456544
+    // WELCOME MESSAGE: PLAIN TEXT
     'welcome': "**stay active & read <#1241372105694515290>** <a:d_004:1360082620733456544>\n" +
                "*/wony in status for pic perms !*", 
 };
@@ -113,7 +111,6 @@ const handleMessageReplies = (messageMap, message) => {
     
     for (const [trigger, reply] of Object.entries(messageMap)) {
         if (content.includes(trigger)) {
-            // Sends the plain string reply (no box)
             message.channel.send(reply); 
             return; 
         }
@@ -230,8 +227,12 @@ const handleSlashCommands = async (interaction, client) => {
 // 5. THE DUAL-BOT FACTORY
 // =================================================================
 
-// 🛑 IMPORTANT: Replace this placeholder with the actual ID of your logging channel.
+// ⚙️ DEFINED CHANNEL IDs
 const LOG_CHANNEL_ID = '1258112422674301070'; 
+const WELCOME_CHANNEL_ID = '1275474726889717851'; 
+
+// 🖼️ URL for the uploaded GIF (Imgur link provided by user)
+const WELCOME_GIF_URL = 'https://i.imgur.com/39mR2zS.gif'; // This is the direct GIF link from the Imgur album 'https://imgur.com/a/8kjagjg'
 
 function createAndStartBot(tokenKey, botName, commandList, messageMap) {
     const TOKEN = process.env[tokenKey];
@@ -245,7 +246,7 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.MessageContent,
-            GatewayIntentBits.GuildMembers // Required for member-related events like logging
+            GatewayIntentBits.GuildMembers 
         ]
     });
 
@@ -276,21 +277,58 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
         handleMessageReplies(messageMap, message);
     });
     
-    // ⭐️ LOGGING GATE: Only Bot A runs this code ⭐️
-    client.on('guildMemberRemove', async (member) => {
-        // If the bot running this event is NOT the Main Mod, stop immediately.
-        if (botName !== "Bot A - Main Mod") {
-            return;
+    // ⭐️ MEMBER JOIN LOG (WELCOME) - CUSTOM EMBED ⭐️
+    client.on('guildMemberAdd', async (member) => {
+        // Only Bot A runs this event
+        if (botName !== "Bot A - Main Mod") return;
+
+        try {
+            const welcomeChannel = member.guild.channels.cache.get(WELCOME_CHANNEL_ID);
+            if (!welcomeChannel) {
+                console.warn(`[${botName}] Welcome channel ID (${WELCOME_CHANNEL_ID}) not found.`);
+                return;
+            }
+
+            // Construct the Embed message exactly as shown in the image
+            const welcomeEmbed = new EmbedBuilder()
+                // Set color to match the dark aesthetic
+                .setColor(0x2F3136) 
+                // Set the image/GIF from Imgur
+                .setImage(WELCOME_GIF_URL)
+                // Add the main content field
+                .addFields({
+                    // The value uses backslashes to escape the markdown formatting for the animated emoji text
+                    value: `<a:wony_uwu:1275474635655077978> **WELCOME** ${member.toString()}`,
+                    name: '\u200B', // Zero width space for an invisible field name
+                    inline: false,
+                })
+                // Add the footer with the dynamic member count
+                .setFooter({ text: `${member.guild.memberCount}` }) // Only shows the number, as requested by the image
+                .setTimestamp();
+
+            // Send the embed. The content field ensures the user is mentioned/pinged
+            await welcomeChannel.send({ 
+                content: `${member.toString()}`, 
+                embeds: [welcomeEmbed] 
+            });
+
+        } catch (error) {
+            console.error(`Error logging member join for ${botName}:`, error);
         }
+    });
+
+    // ⭐️ MEMBER LEAVE LOG (LEAVE) - PLAIN TEXT ⭐️
+    client.on('guildMemberRemove', async (member) => {
+        // Only Bot A runs this event
+        if (botName !== "Bot A - Main Mod") return;
 
         try {
             const logChannel = member.guild.channels.cache.get(LOG_CHANNEL_ID);
             if (!logChannel) {
-                console.warn(`[${botName}] Log channel ID (${LOG_CHANNEL_ID}) not found in guild ${member.guild.name}.`);
+                console.warn(`[${botName}] Log channel ID (${LOG_CHANNEL_ID}) not found.`);
                 return;
             }
 
-            // Sends a simple message when a user leaves
             const logMessage = `👋 **${member.user.tag}** (${member.user.id}) has left the server.`;
             
             await logChannel.send(logMessage);
