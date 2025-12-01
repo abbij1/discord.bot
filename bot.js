@@ -276,8 +276,8 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
                 return;
             }
 
-            // 👇 CORRECTED LEAVE MESSAGE: Uses the actual user tag (username#0000)
-            const logMessage = `${member.user.tag} just ate a dih`;
+            // 👇 FINAL CORRECTED LEAVE MESSAGE: Uses member.toString() to generate a clickable @mention
+            const logMessage = `${member.toString()} just ate a dih`;
             
             await logChannel.send(logMessage);
         } catch (error) {
