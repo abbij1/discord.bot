@@ -91,8 +91,7 @@ const bot1MessageMap = {
     // 1. Channel ID is 1241372105694515290
     // 2. EMOJI ID placeholder is YOUR_EMOJI_ID_NUMBER
     // 3. User ID placeholder is <@!USER_ID_OF_WONY>
-    'welcome': "**stay active & read .𝄞: #xoxz > <#1241372105694515290>**\n" +
-               "<:d_004:>\n" +
+    'welcome': "**stay active & read <#1241372105694515290>** "<:d_004:1360082620733456544>\n" +
                "*/wony in status for pic perms !*", 
 };
 
