@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits } = require('discord.js');
 const express = require('express');
 
 // =================================================================
@@ -86,29 +86,14 @@ const bot1MessageMap = {
     'ethan': 'our bbg :3',
     'xu': 'queen',
     'ping': 'pong!',
-    'meow': 'meow >w<',
     
-    // ⭐️ NEW 'WELCOME' EMBED REPLY ⭐️
-    'welcome': { 
-        isEmbed: true,
-        data: {
-            color: 0x2f3136, 
-            
-            // Channel ID: 1241372105694515290
-            // ACTION REQUIRED: REPLACE YOUR_EMOJI_ID with the actual ID for the custom emoji!
-            description: "stay active & read <#1241372105694515290> <:d_004:YOUR_EMOJI_ID>", 
-            
-            // Use a field for the smaller second line
-            fields: [
-                {
-                    name: ' ', 
-                    value: '*/wony in status for pic perms !*', 
-                    inline: false,
-                },
-            ],
-        }
-    }
-    // You can add 'newreply' here if you still want it
+    // ⭐️ FINAL 'WELCOME' MULTI-LINE STRING REPLY WITH IDs ⭐️
+    // 1. Channel ID is 1241372105694515290
+    // 2. EMOJI ID placeholder is YOUR_EMOJI_ID_NUMBER
+    // 3. User ID placeholder is <@!USER_ID_OF_WONY>
+    'welcome': "**stay active & read .𝄞: #xoxz > <#1241372105694515290>**\n" +
+               "<:d_004:>\n" +
+               "*/wony in status for pic perms !*", 
 };
 
 // ➡️ Bot 2's unique phrases: (Utility/Game Bot)
@@ -130,16 +115,8 @@ const handleMessageReplies = (messageMap, message) => {
     
     for (const [trigger, reply] of Object.entries(messageMap)) {
         if (content.includes(trigger)) {
-            
-            // ⭐️ MODIFIED LOGIC TO HANDLE EMBEDS ⭐️
-            if (typeof reply === 'object' && reply.isEmbed) {
-                // If the reply is an object flagged as an Embed, construct and send it
-                const embed = new EmbedBuilder(reply.data);
-                message.channel.send({ embeds: [embed] });
-            } else {
-                // Otherwise, send the plain string reply (original behavior)
-                message.channel.send(reply);
-            }
+            // All replies are now simple strings containing markdown
+            message.channel.send(reply); 
             return; 
         }
     }
