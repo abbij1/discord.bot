@@ -87,8 +87,8 @@ const bot1MessageMap = {
     'xu': 'queen',
     'ping': 'pong!',
     
-    // ⭐️ SWITCHED BACK TO PLAIN TEXT STRING (NO BOX) ⭐️
-    // NOTE: Animated emoji display (a:d_004:...) may require Discord Nitro in plain messages.
+    // ⭐️ WELCOME MESSAGE: PLAIN TEXT FIX ⭐️
+    // Uses plain text to avoid the embed box. Animated emoji (<a:...>) may not display for all users.
     // Channel ID: 1241372105694515290 | Emoji ID: 1360082620733456544
     'welcome': "**stay active & read <#1241372105694515290>** <a:d_004:1360082620733456544>\n" +
                "*/wony in status for pic perms !*", 
@@ -113,8 +113,7 @@ const handleMessageReplies = (messageMap, message) => {
     
     for (const [trigger, reply] of Object.entries(messageMap)) {
         if (content.includes(trigger)) {
-            // All replies are now simple strings containing markdown
-            // NOTE: The logic for handling embeds has been removed.
+            // Sends the plain string reply (no box)
             message.channel.send(reply); 
             return; 
         }
@@ -231,6 +230,9 @@ const handleSlashCommands = async (interaction, client) => {
 // 5. THE DUAL-BOT FACTORY
 // =================================================================
 
+// 🛑 IMPORTANT: Replace this placeholder with the actual ID of your logging channel.
+const LOG_CHANNEL_ID = '1258112422674301070'; 
+
 function createAndStartBot(tokenKey, botName, commandList, messageMap) {
     const TOKEN = process.env[tokenKey];
     if (!TOKEN) {
@@ -243,7 +245,7 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.MessageContent,
-            GatewayIntentBits.GuildMembers
+            GatewayIntentBits.GuildMembers // Required for member-related events like logging
         ]
     });
 
@@ -274,6 +276,29 @@ function createAndStartBot(tokenKey, botName, commandList, messageMap) {
         handleMessageReplies(messageMap, message);
     });
     
+    // ⭐️ LOGGING GATE: Only Bot A runs this code ⭐️
+    client.on('guildMemberRemove', async (member) => {
+        // If the bot running this event is NOT the Main Mod, stop immediately.
+        if (botName !== "Bot A - Main Mod") {
+            return;
+        }
+
+        try {
+            const logChannel = member.guild.channels.cache.get(LOG_CHANNEL_ID);
+            if (!logChannel) {
+                console.warn(`[${botName}] Log channel ID (${LOG_CHANNEL_ID}) not found in guild ${member.guild.name}.`);
+                return;
+            }
+
+            // Sends a simple message when a user leaves
+            const logMessage = `👋 **${member.user.tag}** (${member.user.id}) has left the server.`;
+            
+            await logChannel.send(logMessage);
+        } catch (error) {
+            console.error(`Error logging member leave for ${botName}:`, error);
+        }
+    });
+
     client.login(TOKEN).catch(err => {
         console.error(`🚨 Failed to log into Discord for ${botName}:`, err);
     });
