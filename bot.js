@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const express = require('express');
 
 // =================================================================
@@ -87,12 +87,27 @@ const bot1MessageMap = {
     'xu': 'queen',
     'ping': 'pong!',
     
-    // ⭐️ FIXED 'WELCOME' MULTI-LINE STRING REPLY ⭐️
-    // ACTION REQUIRED: Replace <@!USER_ID_OF_WONY> with the actual User ID of wony.
-    // Fixed string concatenation and restored the full message structure.
-    'welcome': "**stay active & read <@!USER_ID_OF_WONY> .𝄞: #xoxz > <#1241372105694515290>**\n" +
-               "<:d_004:1360082620733456544>\n" +
-               "*/wony in status for pic perms !*", 
+    // ⭐️ SWITCHING TO EMBED FOR RELIABLE CUSTOM EMOJI DISPLAY ⭐️
+    'welcome': { 
+        isEmbed: true,
+        data: {
+            // Set the color to Discord's dark mode background for a "seamless" look, or leave it out (0x2f3136)
+            color: 0x2f3136, 
+            
+            // The main text goes in the description. Note: Bold (**) is used for slight emphasis.
+            // Emoji and Channel ID are now correctly inserted.
+            description: "**stay active & read <#1241372105694515290>** <:d_004:1360082620733456544>", 
+            
+            // The small, second line goes into a field for separate, smaller formatting.
+            fields: [
+                {
+                    name: ' ', // Empty name to act as a line break/separator
+                    value: '*/wony in status for pic perms !*', // Italics give a smaller font look
+                    inline: false,
+                },
+            ],
+        }
+    }
 };
 
 // ➡️ Bot 2's unique phrases: (Utility/Game Bot)
@@ -114,8 +129,16 @@ const handleMessageReplies = (messageMap, message) => {
     
     for (const [trigger, reply] of Object.entries(messageMap)) {
         if (content.includes(trigger)) {
-            // All replies are now simple strings containing markdown
-            message.channel.send(reply); 
+            
+            // ⭐️ MODIFIED LOGIC TO HANDLE EMBEDS ⭐️
+            if (typeof reply === 'object' && reply.isEmbed) {
+                // If the reply is an object flagged as an Embed, construct and send it
+                const embed = new EmbedBuilder(reply.data);
+                message.channel.send({ embeds: [embed] });
+            } else {
+                // Otherwise, send the plain string reply (original behavior)
+                message.channel.send(reply);
+            }
             return; 
         }
     }
