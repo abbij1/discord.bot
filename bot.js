@@ -34,7 +34,7 @@ const allCommands = [
 const bot1MessageMap = {
     'hai': 'haii:3', 'hello': 'hellooo', 'aya': 'fat and retarded', 'oron': 'your daddy', 'fatran': 'airpor/10',
     'abbi': 'best kitten', 'soobie': 'soobins wife', 'yue': 'looking for a gf', 'randle': 'little omega', 'ethan': 'our bbg :3',
-    'xu': 'queen', 'ping': 'pong!',
+    'xu': 'queen', 'ping': 'pong!', 'abi': 'best beta',
     'welcome': "**stay active & read <#1241372105694515290>** <a:d_004:1360082620733456544>\n" +
                "*/wony in status for pic perms !*", 
 };
