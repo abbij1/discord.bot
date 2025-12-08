@@ -62,7 +62,6 @@ app.listen(port, () => {
 const allCommands = [
     // --- NEW: Help/Commands ---
     { name: 'help', description: 'Lists all available commands for the bot.' },
-    { name: 'commands', description: 'Lists all available commands for the bot.' },
 
     // --- Existing Moderation Commands ---
     { name: 'ban', description: 'Ban a member from the server', options: [{ name: 'user', type: 6, description: 'The user to ban', required: true }, { name: 'reason', type: 3, description: 'Reason for the ban', required: false }], default_member_permissions: PermissionFlagsBits.BanMembers.toString() },
@@ -173,7 +172,7 @@ const handleSlashCommands = async (interaction, client) => {
                 .setTitle(`🤖 ${botTag} Available Commands`)
                 .setDescription('Here is a list of all commands you can use. Note: Both bots share the same moderation and setup commands.')
                 .addFields(
-                    { name: '📝 Basic Commands', value: '`/help` or `/commands`', inline: true },
+                    { name: '📝 Basic Commands', value: '**/help** (or **/commands**)', inline: true },
                     { name: '\u200B', value: '\u200B', inline: true }, // Empty field for spacing
                     { name: '🛠️ Config/Setup (Manage Server required)', value: 
                         '**`/setchannel`**: Configure logs, welcome channel, and welcome GIF URL.\n' +
