@@ -60,6 +60,10 @@ app.listen(port, () => {
 // =================================================================
 
 const allCommands = [
+    // --- NEW: Help/Commands ---
+    { name: 'help', description: 'Lists all available commands for the bot.' },
+    { name: 'commands', description: 'Lists all available commands for the bot.' },
+
     // --- Existing Moderation Commands ---
     { name: 'ban', description: 'Ban a member from the server', options: [{ name: 'user', type: 6, description: 'The user to ban', required: true }, { name: 'reason', type: 3, description: 'Reason for the ban', required: false }], default_member_permissions: PermissionFlagsBits.BanMembers.toString() },
     { name: 'unban', description: 'Unban a user from the server', options: [{ name: 'user_id', type: 3, description: 'The user ID to unban', required: true }, { name: 'reason', type: 3, description: 'Reason for the unban', required: false }], default_member_permissions: PermissionFlagsBits.BanMembers.toString() },
@@ -67,7 +71,7 @@ const allCommands = [
     { name: 'mute', description: 'Mute a member in the server', options: [{ name: 'user', type: 6, description: 'The user to mute', required: true }, { name: 'duration', type: 4, description: 'Duration in minutes (default: 10)', required: false }, { name: 'reason', type: 3, description: 'Reason for the mute', required: false }], default_member_permissions: PermissionFlagsBits.ModerateMembers.toString() },
     { name: 'unmute', description: 'Unmute a member in the server', options: [{ name: 'user', type: 6, description: 'The user to unmute', required: true }, { name: 'reason', type: 3, description: 'Reason for the unmute', required: false }], default_member_permissions: PermissionFlagsBits.ModerateMembers.toString() },
 
-    // --- NEW: Editable Auto-Response Command ---
+    // --- Editable Auto-Response Command ---
     {
         name: 'autoresponse',
         description: 'Manage the bot\'s custom auto-responses.',
@@ -92,7 +96,7 @@ const allCommands = [
         ],
     },
 
-    // --- NEW: Editable Channel Settings Command ---
+    // --- Editable Channel Settings Command ---
     {
         name: 'setchannel',
         description: 'Set custom channels for logs and welcome messages.',
@@ -162,6 +166,34 @@ const handleSlashCommands = async (interaction, client) => {
     await interaction.deferReply({ ephemeral: false }).catch(console.error);
 
     try {
+        // --- NEW: HELP/COMMANDS LOGIC ---
+        if (commandName === 'help' || commandName === 'commands') {
+            const helpEmbed = new EmbedBuilder()
+                .setColor(0x0099ff)
+                .setTitle(`🤖 ${botTag} Available Commands`)
+                .setDescription('Here is a list of all commands you can use. Note: Both bots share the same moderation and setup commands.')
+                .addFields(
+                    { name: '📝 Basic Commands', value: '`/help` or `/commands`', inline: true },
+                    { name: '\u200B', value: '\u200B', inline: true }, // Empty field for spacing
+                    { name: '🛠️ Config/Setup (Manage Server required)', value: 
+                        '**`/setchannel`**: Configure logs, welcome channel, and welcome GIF URL.\n' +
+                        '**`/autoresponse`**: Add, remove, or list custom text triggers for Bot A or Bot B.',
+                      inline: false
+                    },
+                    { name: '🛡️ Moderation (Requires appropriate permissions)', value: 
+                        '**`/ban`**: Ban a user.\n' +
+                        '**`/unban`**: Unban a user by ID.\n' +
+                        '**`/kick`**: Kick a user.\n' +
+                        '**`/mute`**: Mute/Timeout a user (duration in minutes).\n' +
+                        '**`/unmute`**: Remove Timeout from a user.',
+                      inline: false
+                    }
+                )
+                .setTimestamp();
+                
+            return await interaction.editReply({ embeds: [helpEmbed], ephemeral: true });
+        }
+        
         // --- AUTO-RESPONSE COMMAND LOGIC ---
         if (commandName === 'autoresponse') {
             if (!member.permissions.has(PermissionFlagsBits.ManageGuild)) {
